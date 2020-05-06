@@ -1,1 +1,6 @@
-source code kernel cho macom
+
+make ARCH=arm CROSS_COMPILE=arm-openwrt-linux- distclean
+make ARCH=arm CROSS_COMPILE=arm-openwrt-linux- c300v2evm_defconfig
+make ARCH=arm CROSS_COMPILE=arm-openwrt-linux- menuconfig
+make ARCH=arm CROSS_COMPILE=arm-openwrt-linux- -j4
+

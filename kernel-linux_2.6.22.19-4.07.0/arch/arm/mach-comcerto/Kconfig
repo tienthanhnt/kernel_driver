@@ -1,0 +1,143 @@
+if ARCH_COMCERTO
+
+menu "Comcerto Implementation Options"
+
+config COMCERTO_300
+	bool
+
+config COMCERTO_300V1
+	bool
+
+config COMCERTO_300V2
+	bool
+
+config COMCERTO_515
+	bool
+
+config ARCH_M823XX
+	bool
+	select COMCERTO_300
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+config ARCH_M825XX2
+	bool
+	select COMCERTO_515
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+
+config ARCH_M823V1
+	bool
+	select ARCH_M823XX
+	select COMCERTO_300V1
+
+config ARCH_M823V2
+	bool
+	select ARCH_M823XX
+	select COMCERTO_300V2
+
+choice
+	prompt "Comcerto development board type"
+	default EVM_C300V2
+
+	config EVM_MEGAMOMBASA515
+		bool "MegaMombasa515"
+		select ARCH_M825XX2
+		help
+		  Say Y here if you intend to run this kernel on MegaMombasa515 (x390) board
+		  with M82515 device.
+
+	config EVM_C300V1
+		bool "Comcerto 300v1"
+		select ARCH_M823V1
+		help
+		  Say Y here if you intend to run this kernel with a Comcerto 300v1 (x570) board
+		  with M823V1 device.
+
+	config EVM_C300V2
+		bool "Comcerto 300v2"
+		select ARCH_M823V2
+		help
+		  Say Y here if you intend to run this kernel with a C300_V2 (x690) board
+		  with M823V2 device.
+endchoice
+
+choice
+	prompt "MSP firmware type"
+	default MSP_CARRIER
+
+	config MSP_CARRIER
+		bool "Carrier"
+		depends on ARCH_M823XX || ARCH_M825XX2
+		help
+		  Say Y here if you intend to run this kernel with Carrier MSP firmware.
+
+	config MSP_NONE
+		bool "None"
+		help
+		  Say Y here if you intend to run this kernel on ARM0 only without a MSP firmware.
+endchoice
+
+config CSP_ARM0
+	bool "CSP on ARM0 CPU"
+	help
+	  CSP kernel runs on ARM1 with Carrier firmware, you can change this
+	  if you know what you are doing.
+
+	  Say Y here if you intend to run this kernel on ARM0 CPU.
+
+menu "Serial port configuration"
+	config COMCERTO_UART0_SUPPORT
+		bool "Support for UART0 serial port"
+		depends on ARCH_M823XX || ARCH_M825XX2
+		select SERIAL_8250
+
+	config COMCERTO_UART1_SUPPORT
+		bool "Support for UART1 serial port"
+		depends on ARCH_M823XX || ARCH_M825XX2
+		select SERIAL_8250
+endmenu
+
+menu "Network device configuration"
+	config COMCERTO_ETH
+		bool "Comcerto Ethernet Driver"
+		depends on ARCH_COMCERTO && (ARCH_M823XX || ARCH_M825XX2)
+		select PHYLIB
+		default y if !MSP_CARRIER
+		help
+		  Direct CSP Ethernet driver. Can be used either to directly
+		  control the second GEMAC port of M823XX device or provide
+		  access to network once firmware is reset. Also needed when
+		  kernel runs on ARM0 without firmware.
+
+	config COMCERTO_VED
+		bool "Comcerto Virtual Ethernet Driver (VED)"
+		depends on MSP_CARRIER
+		help
+		  Virtual CSP Ethernet driver. Provides virtual eth1 interface
+		  to control firmware via CSMENCAPS protocol, also supports
+		  physical Ethernet ports controlled by firmware (they will
+		  be called eth0 for the first port and eth2 for the second,
+		  if supported by device).
+endmenu
+
+menu "Flash configuration"
+	config COMCERTO_MTD_NOR
+		bool "NOR 16-bit flash memory"
+		select MTD
+		select MTD_PHYSMAP
+
+	config COMCERTO_MTD_NAND
+		bool "NAND flash memory"
+		select MTD
+		select MTD_NAND
+		select MTD_NAND_PLATFORM
+endmenu
+
+config LOCALVERSION
+	default "-c300evm" if EVM_C300V1
+	default "-c300v2evm" if EVM_C300V2
+	default "-megamombasa515" if EVM_MEGAMOMBASA515
+endmenu
+
+endif
