@@ -365,6 +365,7 @@ static struct spi_driver at25_driver = {
 
 static int __init at25_init(void)
 {
+	printk("===== %s\n", __FUNCTION__);
 	return spi_register_driver(&at25_driver);
 }
 module_init(at25_init);

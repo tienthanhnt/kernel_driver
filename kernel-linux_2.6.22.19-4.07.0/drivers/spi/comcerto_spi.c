@@ -674,7 +674,7 @@ static int __init comcerto_spi_probe(struct platform_device *pdev)
 	struct comcerto_spi *adapter;
 	struct resource *res;
 	int rc = -EINVAL;
-
+	printk("====== %s\n", __FUNCTION__);
 	spi_dbg(&pdev->dev, "registering device\n");
 
 	master = spi_alloc_master(&pdev->dev, sizeof(struct comcerto_spi) + PAGE_SIZE + 32);
