@@ -191,6 +191,24 @@ config SPI_AT25
 	  This driver can also be built as a module.  If so, the module
 	  will be called at25.
 
+config SPI0
+	tristate "SPI0_DICOM"
+	depends on SPI_MASTER && SYSFS
+	help
+	  Enable this driver to get read/write support to Dicom codec.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called spi0.
+
+config SPI1
+	tristate "SPI1_DICOM"
+	depends on SPI_MASTER && SYSFS
+	help
+	  Enable this driver to get read/write support to Dicom codec.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called spi1.
+
 config SPI_SPIDEV
 	tristate "User mode SPI device driver support"
 	depends on SPI_MASTER && EXPERIMENTAL

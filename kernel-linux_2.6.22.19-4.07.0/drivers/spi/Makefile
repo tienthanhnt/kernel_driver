@@ -30,6 +30,8 @@ obj-$(CONFIG_SPI_COMCERTO_FIQ)		+= comcerto_spi_fiq.o
 # SPI protocol drivers (device/link on bus)
 obj-$(CONFIG_SPI_AT25)		+= at25.o
 obj-$(CONFIG_SPI_SPIDEV)	+= spidev.o
+obj-$(CONFIG_SPI0)			+= spi0.o
+obj-$(CONFIG_SPI1)			+= spi1.o
 # 	... add above this line ...
 
 # SPI slave controller drivers (upstream link)
