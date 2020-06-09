@@ -192,7 +192,7 @@ config SPI_AT25
 	  will be called at25.
 
 config SPI0
-	tristate "SPI0_DICOM"
+	tristate "SPI0 DICOM"
 	depends on SPI_MASTER && SYSFS
 	help
 	  Enable this driver to get read/write support to Dicom codec.
@@ -201,7 +201,7 @@ config SPI0
 	  will be called spi0.
 
 config SPI1
-	tristate "SPI1_DICOM"
+	tristate "SPI1 DICOM"
 	depends on SPI_MASTER && SYSFS
 	help
 	  Enable this driver to get read/write support to Dicom codec.

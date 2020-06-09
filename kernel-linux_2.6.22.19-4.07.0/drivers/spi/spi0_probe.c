@@ -18,8 +18,8 @@
 #include <linux/uaccess.h>
 #include <linux/io.h>
 
-#define SPI0_BASE               0x10098000
-#define SPI0_END                0x10099FFF
+#define SPI0_BASE 				0x10098000
+#define SPI0_END  				0x10099FFF
 #define COMCERTO_SPI_CTRLR0     0x00
 #define COMCERTO_SPI_CTRLR1     0x04
 #define COMCERTO_SPI_SSIENR     0x08
@@ -42,28 +42,25 @@
 #define COMCERTO_SPI_IDR        0x58
 #define COMCERTO_SPI_DR         0x60
 
+#define SLAVE_SELECT_ENABLE 	0x1000
+#define SLAVE_SELECT			0x1004
+#define COMCERTO_SPI0_SIZE 		(SPI0_END - SPI0_BASE)
 
-#define SLAVE_SELECT_ENABLE     0x1000
-#define SLAVE_SELECT            0x1004
-#define COMCERTO_SPI0_SIZE      (SPI0_END - SPI0_BASE)
-
-#define ENABLE_ALL_PIN          49
-#define ENABLE_PIN_2_3_4        50
-#define ENABLE_PIN_1_3_4        51
-#define ENABLE_PIN_3_4          52
-#define ENABLE_PIN_1_2_4        53
-#define ENABLE_PIN_2_4          54
-#define ENABLE_PIN_1_4          55
-#define ENABLE_PIN_4            56
-#define ENABLE_PIN_1_2_3        57
-#define ENABLE_PIN_2_3          58
-#define ENABLE_PIN_3            59
-#define ENABLE_PIN_1_2          60
-#define ENABLE_PIN_2            61
-#define ENABLE_PIN_1            62
-#define DISABLE_ALL             63
-
-#define ERROR					-1
+#define ENABLE_ALL_PIN			49
+#define ENABLE_PIN_2_3_4		50
+#define ENABLE_PIN_1_3_4		51
+#define ENABLE_PIN_3_4			52
+#define ENABLE_PIN_1_2_4		53
+#define ENABLE_PIN_2_4			54
+#define ENABLE_PIN_1_4			55
+#define ENABLE_PIN_4			56
+#define ENABLE_PIN_1_2_3		57
+#define ENABLE_PIN_2_3			58
+#define ENABLE_PIN_3			59
+#define ENABLE_PIN_1_2			60
+#define ENABLE_PIN_2			61
+#define ENABLE_PIN_1			62
+#define DISABLE_ALL				63
 
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
@@ -71,30 +68,45 @@ static unsigned bufsiz = 4096;
 module_param(bufsiz, uint, S_IRUGO);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
+/*----------------------*
 static dev_t  dev;
 static struct cdev   c_dev;
 static struct class  *class_p;
 static struct device *device_p;
 static void __iomem *io;
+-----------------------*/
+static void __iomem *io;
+struct spi0_data {
+    struct spi_device   *spi;
+    struct mutex        lock;
+
+    struct cdev   c_dev; // tao ra character device
+    dev_t dev;
+    struct class  *class_p; // tao ra class
+    struct device *device_p; // da co spi_device thi can them cai nay ko ? co can de thuc hien phan device file
+
+    struct mutex buf_lock;
+    unsigned    users;
+    u8          *buffer;
+};
 
 static int spi0_open(struct inode *inodep, struct file *file)
 {
-    io = ioremap(SPI0_BASE, SPI0_END - SPI0_BASE);
-    if (io == NULL)
-        return ERROR;
-    iowrite32(0x00, (io + COMCERTO_SPI_SSIENR));
-    iounmap(io);
-    return 0;
+	io = ioremap(SPI0_BASE, SPI0_END - SPI0_BASE);
+	if (io == NULL) 
+		return -1;
+	iowrite32(0x00, (io + COMCERTO_SPI_SSIENR));
+	iounmap(io);
+	return 0;
 }
 static int spi0_release(struct inode *inodep, struct file *file)
 {
-    return 0;
+	return 0;
 }
-
 static int spi0_write(struct file *file, const char __user *buf, size_t len, loff_t *offset)
 {
-    printk(KERN_INFO "\n ......protocol_spi0: %s......\n", __FUNCTION__);
-    long int temp;
+	printk(KERN_INFO "\n ......protocol_spi0: %s......\n", __FUNCTION__);
+	long int temp;
 	char *kernel_buf = NULL;
 	kernel_buf = kzalloc(len, GFP_KERNEL);
 	if (kernel_buf == NULL)
@@ -109,64 +121,64 @@ static int spi0_write(struct file *file, const char __user *buf, size_t len, lof
 	}
 	iowrite32(0x1, (io + SLAVE_SELECT_ENABLE));
 	switch (*kernel_buf) {
-		case ENABLE_ALL_PIN:
-			printk("ENABLE_ALL_PIN \n");
+		case ENABLE_ALL_PIN: 
+			printk("ENABLE_ALL_PIN \n"); 	
 			iowrite32(0x0, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_2_3_4:
-			printk("ENABLE_PIN_2_3_4 \n");
+		case ENABLE_PIN_2_3_4: 
+			printk("ENABLE_PIN_2_3_4 \n"); 	
 			iowrite32(0x1, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_1_3_4:
-			printk("ENABLE_PIN_1_3_4 \n");
+		case ENABLE_PIN_1_3_4: 
+			printk("ENABLE_PIN_1_3_4 \n"); 	
 			iowrite32(0x2, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_3_4:
-			printk("ENABLE_PIN_3_4 \n");
+		case ENABLE_PIN_3_4: 
+			printk("ENABLE_PIN_3_4 \n"); 	
 			iowrite32(0x3, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_1_2_4:
-			printk("ENABLE_PIN_1_2_4 \n");
+		case ENABLE_PIN_1_2_4: 
+			printk("ENABLE_PIN_1_2_4 \n"); 	
 			iowrite32(0x4, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_2_4:
-			printk("ENABLE_PIN_2_4 \n");
+		case ENABLE_PIN_2_4: 
+			printk("ENABLE_PIN_2_4 \n"); 	
 			iowrite32(0x5, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_1_4:
-			printk("ENABLE_PIN_1_4 \n");
+		case ENABLE_PIN_1_4: 
+			printk("ENABLE_PIN_1_4 \n"); 	
 			iowrite32(0x6, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_4:
-			printk("ENABLE_PIN_4 \n");
+		case ENABLE_PIN_4: 
+			printk("ENABLE_PIN_4 \n"); 	
 			iowrite32(0x7, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_1_2_3:
-			printk("ENABLE_PIN_1_2_3 \n");
+		case ENABLE_PIN_1_2_3: 
+			printk("ENABLE_PIN_1_2_3 \n"); 	
 			iowrite32(0x8, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_2_3:
-			printk("ENABLE_PIN_2_3 \n");
+		case ENABLE_PIN_2_3: 
+			printk("ENABLE_PIN_2_3 \n"); 	
 			iowrite32(0x9, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_3:
-			printk("ENABLE_PIN_3 \n");
+		case ENABLE_PIN_3: 
+			printk("ENABLE_PIN_3 \n"); 	
 			iowrite32(0xA, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_1_2:
-			printk("ENABLE_PIN_1_2 \n");
+		case ENABLE_PIN_1_2: 
+			printk("ENABLE_PIN_1_2 \n"); 	
 			iowrite32(0xB, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_2:
-			printk("ENABLE_PIN_2 \n");
+		case ENABLE_PIN_2: 
+			printk("ENABLE_PIN_2 \n"); 	
 			iowrite32(0xC, (io + SLAVE_SELECT));
 			break;
-		case ENABLE_PIN_1:
-			printk("ENABLE_PIN_1 \n");
+		case ENABLE_PIN_1: 
+			printk("ENABLE_PIN_1 \n"); 	
 			iowrite32(0xD, (io + SLAVE_SELECT));
 			break;
-		case DISABLE_ALL:
-			printk("DISABLE_ALL \n");
+		case DISABLE_ALL: 
+			printk("DISABLE_ALL \n"); 	
 			iowrite32(0xE, (io + SLAVE_SELECT));
 			break;
 		default:
@@ -179,24 +191,21 @@ get_data_fail:
     kfree(kernel_buf);
     kernel_buf = NULL;
 malloc_fail:
-    return ERROR;
-
+    return -1;
 }
-
 static int spi0_read(struct inode *inodep, struct file *file)
 {
-    printk(KERN_INFO "\n ......protocol_spi0: %s......\n", __FUNCTION__);
-    unsigned int temp;
-    unsigned int check;
-    io = ioremap(SPI0_BASE, SPI0_END - SPI0_BASE);
-    if (io == NULL) {
-        printk("====== error ioremap in %s\n", __FUNCTION__);
-        goto get_data_fail;
-    }
+	printk(KERN_INFO "\n ......protocol_spi0: %s......\n", __FUNCTION__);
+	unsigned int temp;
+	unsigned int check;
+	io = ioremap(SPI0_BASE, SPI0_END - SPI0_BASE);
+	if (io == NULL) {
+		printk("====== error ioremap in %s\n", __FUNCTION__);
+		goto get_data_fail;
+	}
 	temp = ioread32(io + SLAVE_SELECT);
 	printk("temp in %s = %X \n", __FUNCTION__, temp);
 	check = temp + 49; /*check this value*/
-
 	switch(check) {
 		case ENABLE_ALL_PIN:
 			printk("All pin is enabled \n");
@@ -231,17 +240,17 @@ static int spi0_read(struct inode *inodep, struct file *file)
 		case ENABLE_PIN_3:
 			printk("Pin 3 is enabled \n");
 			break;
-		case ENABLE_PIN_1_2:
-			printk("Pin 1 2 is enabled \n");
+		case ENABLE_PIN_1_2: 
+			printk("Pin 1 2 is enabled \n"); 	
 			break;
-		case ENABLE_PIN_2:
-			printk("Pin 2 is enabled \n");
+		case ENABLE_PIN_2: 
+			printk("Pin 2 is enabled \n"); 	
 			break;
-		case ENABLE_PIN_1:
-			printk("Pin 1 is enabled \n");
+		case ENABLE_PIN_1: 
+			printk("Pin 1 is enabled \n"); 	
 			break;
-		case DISABLE_ALL:
-			printk("DISABLE_ALL \n");
+		case DISABLE_ALL: 
+			printk("DISABLE_ALL \n"); 	
 			break;
 		default:
 			printk("invalid value \n");
@@ -252,53 +261,81 @@ static int spi0_read(struct inode *inodep, struct file *file)
 send_data_fail:
 	iounmap(io);
 get_data_fail:
-	return ERROR;
+	return -1;
+}
+static struct file_operations fops = {
+	.open = spi0_open,
+	.release = spi0_release,
+	.write = spi0_write,
+	.read = spi0_read
+};
+
+static int spi0_probe(struct spi_device *spi)
+{
+	struct spi0_data *spi0;
+	spi0 = kzalloc(sizeof *spi0, GFP_KERNEL);
+    /* tao character device luon */
+    if (NULL == spi0) {
+        printk("====== kazalloc failed %s\n", __FUNCTION__);
+        goto fail;
+    }
+	spi0->spi = spi;
+	spi_set_drvdata(spi, spi0);
+
+	if (alloc_chrdev_region(&spi0->dev, 0, 1, "spi0_dev") < 0) {
+		pr_info("Error occur, can not register major number\n");
+		return -1;
+	}
+	spi0->class_p = class_create(THIS_MODULE, "class_driver_test");
+	if (spi0->class_p == NULL) {
+		pr_info("Error occur, can not create class device\n");
+		return -1;
+	}
+	spi0->device_p = device_create(spi0->class_p, NULL, spi0->dev, "spi0_drv");
+	if (spi0->device_p == NULL) {
+		pr_info("Can not create device\n");
+		return -EFAULT;
+	}
+	cdev_init(&spi0->c_dev, &fops);
+	spi0->c_dev.owner = THIS_MODULE;
+	spi0->c_dev.dev = spi0->dev;
+	cdev_add(&spi0->c_dev, spi0->dev, 1);
+fail:
+    printk("====== fail in %s\n",__FUNCTION__);
+    kfree(spi0);
+    return -1;
 }
 
-static struct file_operations fops = {
-    .open = spi0_open,
-    .release = spi0_release,
-    .write = spi0_write,
-    .read = spi0_read
+static int __devexit spi0_remove(struct spi_device *spi)
+{
+	struct spi0_data *spi0 = spi_get_drvdata(spi);
+	cdev_del(&spi0->c_dev);
+	device_destroy(spi0->class_p, spi0->dev);
+	class_destroy(spi0->class_p);
+	unregister_chrdev_region(spi0->dev, 1);
+	return 0;
+}
+
+static struct spi_driver spi0_driver = {
+    .driver = {
+        .name       = "spi0",
+        .owner      = THIS_MODULE,
+    },
+    .probe      = spi0_probe,
+    .remove     = __devexit_p(spi0_remove),
 };
 
 static int __init spi0_init(void)
 {
     printk("===== %s\n", __FUNCTION__);
-    if (alloc_chrdev_region(&dev, 0, 1, "spi0_dev") < 0) { /* dang ky device number bien dev kieu dev_t dung de luu bo so MAJOR, MINOR*/
-        pr_info("Error occur, can not register major number\n");
-        return ERROR;
-    }
-
-    class_p = class_create(THIS_MODULE, "class_spi0");
-    if (class_p == NULL) {
-        pr_info("Error occur, can not create class device\n");
-        return ERROR;
-    }
-
-    device_p = device_create(class_p, NULL, dev, "devspi0");
-    if (device_p == NULL) {
-        pr_info("Can not create device\n");
-        return ERROR;
-    }
-
-    cdev_init(&c_dev, &fops);
-    c_dev.owner = THIS_MODULE;
-    c_dev.dev = dev;
-    cdev_add(&c_dev, dev, 1);
-
-    return 0;
-//    return spi_register_driver(&spi0_driver);
+    return spi_register_driver(&spi0_driver);
 }
 
 static void __exit spi0_exit(void)
 {
-    cdev_del(&c_dev);
-    device_destroy(class_p, dev);
-    class_destroy(class_p);
-    unregister_chrdev_region(dev, 1);
-//    spi_unregister_driver(&spi0_driver);
+    spi_unregister_driver(&spi0_driver);
 }
+
 
 module_init(spi0_init);
 module_exit(spi0_exit);
@@ -306,4 +343,5 @@ module_exit(spi0_exit);
 MODULE_DESCRIPTION("Driver SPI0");
 MODULE_AUTHOR("Dicom");
 MODULE_LICENSE("GPL");
+
 

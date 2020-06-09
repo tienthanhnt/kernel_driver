@@ -265,7 +265,7 @@ static struct file_operations fops = {
 static int __init spi0_init(void)
 {
     printk("===== %s\n", __FUNCTION__);
-    if (alloc_chrdev_region(&dev, 0, 1, "spi0_dev") < 0) { /* dang ky device number bien dev kieu dev_t dung de luu bo so MAJOR, MINOR*/
+    if (alloc_chrdev_region(&dev, 0, 1, "spi0_dev") < 0) {
         pr_info("Error occur, can not register major number\n");
         return ERROR;
     }
@@ -276,7 +276,7 @@ static int __init spi0_init(void)
         return ERROR;
     }
 
-    device_p = device_create(class_p, NULL, dev, "devspi0");
+    device_p = device_create(class_p, NULL, dev, NULL, "devspi0");
     if (device_p == NULL) {
         pr_info("Can not create device\n");
         return ERROR;
