@@ -524,7 +524,7 @@ static int comcerto_i2c_probe(struct platform_device *pdev)
 	struct comcerto_i2c *i2c;
 	struct resource *irq;
 	int res = -1;
-
+	printk("====== %s\n",__FUNCTION__);
 	dev_dbg(&pdev->dev, "%s\n", __FUNCTION__);
 
 	i2c = kzalloc(sizeof(*i2c), GFP_KERNEL);
@@ -646,7 +646,6 @@ static struct platform_driver comcerto_i2c_driver = {
 static int __init comcerto_i2c_init(void)
 {
 	printk(KERN_DEBUG "%s: module loaded\n", __FUNCTION__);
-
 	if (platform_driver_register(&comcerto_i2c_driver)) {
 		printk(KERN_ERR "%s: failed to register platform device\n", __FUNCTION__);
 		return -1;

@@ -26,6 +26,7 @@
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/physmap.h>
 #include <linux/spi/spi.h>
+#include <linux/i2c.h>
 
 #include <asm/sizes.h>
 #include <asm/setup.h>
@@ -372,17 +373,7 @@ static struct spi_board_info c300v2evm_legerity_spi_info[] = {
 		.platform_data = &c300v2evm_legerity1_platform_data,
 	},
 };
-static struct spi_board_info at25_info[] = {
-	{
-		.modalias = "at25",
-		.chip_select = 6,
-		.max_speed_hz = 4*1000*1000,
-		.bus_num = 0,
-		.irq = -1,
-		.mode = SPI_MODE_3,
-		.platform_data = &c300v2evm_legerity0_platform_data,
-	},
-};
+
 static struct spi_board_info spi0_info[] = {
 	{
 		.modalias = "spi0",
@@ -394,17 +385,7 @@ static struct spi_board_info spi0_info[] = {
 		.platform_data = &c300v2evm_legerity0_platform_data,
 	},
 };
-static struct spi_board_info spidev_info[] = {
-	{
-		.modalias = "spidev",
-		.chip_select = 2,
-		.max_speed_hz = 1000*1000,
-		.bus_num = 0,
-		.irq = -1,
-		.mode = SPI_MODE_3,
-		.platform_data = &c300v2evm_legerity0_platform_data,
-	},
-};
+
 #endif
 
 /* --------------------------------------------------------------------
@@ -470,6 +451,7 @@ static struct platform_device c300v2evm_i2c = {
 	.num_resources	= ARRAY_SIZE(c300v2evm_i2c_resources),
 	.resource	= c300v2evm_i2c_resources,
 };
+
 #endif
 
 /* --------------------------------------------------------------------
@@ -676,14 +658,10 @@ static int __init c300v2evm_init(void)
 
 #ifdef SPI_ENABLED
 	spi_register_board_info(c300v2evm_legerity_spi_info, 2);
-	spi_register_board_info(at25_info, 1);
-	spi_register_board_info(spi0_info, 1);
-	spi_register_board_info(spidev_info, 1);
 #endif
 
 	return 0;
 }
-
 
 arch_initcall(c300v2evm_init);
 

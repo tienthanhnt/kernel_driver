@@ -5,17 +5,13 @@
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/sched.h>
-
 #include <linux/spi/spi.h>
 #include <linux/spi/eeprom.h>
-/*add header for spidev*/
 #include <asm/uaccess.h>
 #include <linux/ioctl.h>
 #include <linux/list.h>
 #include <linux/errno.h>
 #include <linux/mutex.h>
-
-/*add header for character device*/
 #include <linux/cdev.h>
 #include <linux/fs.h>
 #include <linux/kdev_t.h>
@@ -194,7 +190,6 @@ static int __init spi1_init(void)
 	return 0;
 fail:
     printk("====== fail in %s\n",__FUNCTION__);
-//    dev_dbg(&spi->dev, "======probe err %d\n", err);
 //    kfree(spi1);
     return -1;
 }

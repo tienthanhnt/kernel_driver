@@ -198,7 +198,6 @@ static int m24_i2c_probe(struct i2c_adapter *adapter, int addr, int kind)
 	int err;
 	struct m24_device *m24;
 	struct i2c_client *client;
-
 	m24 = kzalloc(sizeof(*m24), GFP_KERNEL);
 	if (m24 == NULL) {
 		dev_err(&adapter->dev, "m24512: failed to allocate memory\n");
@@ -245,7 +244,8 @@ err_free:
 static int m24_attach_adapter(struct i2c_adapter *adapter)
 {
 	static unsigned short ignore[]	= { I2C_CLIENT_END };
-	static unsigned short normal_addr[] = { 0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57, I2C_CLIENT_END };
+	static unsigned short normal_addr[] = { 0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57, I2C_CLIENT_END }; 
+										  /*0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,*/
 	static struct i2c_client_address_data addr_data =
 	{
 		.normal_i2c	= normal_addr,

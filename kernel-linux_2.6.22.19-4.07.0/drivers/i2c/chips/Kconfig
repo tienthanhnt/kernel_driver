@@ -107,6 +107,11 @@ config ISP1301_OMAP
 	  This driver can also be built as a module.  If so, the module
 	  will be called isp1301_omap.
 
+config SI705x
+	tristate "Sensor Thermal SI705x"
+	help
+	  If you say yes here you get support for sensor SI705x.
+
 # NOTE:  This isn't really OMAP-specific, except for the current
 # interface location in  <include/asm-arm/arch-omap/tps65010.h>
 # and having mostly OMAP-specific board support
