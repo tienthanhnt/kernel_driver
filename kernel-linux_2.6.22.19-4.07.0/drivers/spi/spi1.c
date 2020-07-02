@@ -17,15 +17,9 @@
 #include <linux/kdev_t.h>
 #include <linux/uaccess.h>
 #include <linux/io.h>
-/*********************************/
-/* spidev */
-//#define SPIDEV_MAJOR			159	/* assigned */
-//#define N_SPI_MINORS			32	/* ... up to 256 */
-//static unsigned long	minors[N_SPI_MINORS / BITS_PER_LONG];
-/* Bit masks for spi_device.mode management */
+
 #define SPI_MODE_MASK			(SPI_CPHA | SPI_CPOL)
 
-/* define SPI1 register */
 #define SPI1_BASE 				0x1009A000
 #define SPI1_END  				0x1009BFFF
 #define COMCERTO_SPI_CTRLR0     0x00
@@ -58,30 +52,23 @@ static DEFINE_MUTEX(device_list_lock);
 static unsigned bufsiz = 4096;
 module_param(bufsiz, uint, S_IRUGO);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
-/*-------------------------------------------*/
 
-/*struct spi1_data {
-	struct spi_device	*spi;
-	struct mutex		lock;
-	struct spi_eeprom	chip;
-	struct bin_attribute	bin;
-	unsigned		addrlen;
+struct spi1_data {
+    struct spi_device   *spi;
+    struct mutex        lock;
 
-	struct cdev   c_dev; // tao ra character device
-	dev_t dev_num;
-	struct class  *class_p; // tao ra class
-	struct device *device_p; // da co spi_device thi can them cai nay ko ? co can de thuc hien phan device file
-	
-	struct mutex buf_lock;
-	unsigned 	users;
-	u8 			*buffer;
-};*/
-static dev_t  dev;
-static struct cdev   c_dev;
-static struct class  *class_p;
-static struct device *device_p;
+    struct cdev   c_dev; // tao ra character device
+    dev_t dev;
+    struct class  *class_p; // tao ra class
+    struct device *device_p; // da co spi_device thi can them cai nay ko ? co can de thuc hien phan device file
 
+    struct mutex buf_lock;
+    unsigned    users;
+    u8          *buffer;
+};
+static struct spi1_data *spi;
 static void __iomem *io;
+
 
 static u8 buf[10000] = {1,2,3,4,5,6,7,8,9,10};
 static void __iomem *io;
