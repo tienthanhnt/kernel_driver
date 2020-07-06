@@ -18,8 +18,6 @@
 #include <linux/uaccess.h>
 #include <linux/io.h>
 
-#define SPI_MODE_MASK			(SPI_CPHA | SPI_CPOL)
-
 #define SPI1_BASE 				0x1009A000
 #define SPI1_END  				0x1009BFFF
 #define COMCERTO_SPI_CTRLR0     0x00
@@ -44,6 +42,18 @@
 #define COMCERTO_SPI_IDR        0x58
 #define COMCERTO_SPI_DR         0x60
 
+// name for codec register, used for CPC5750
+#define MODE_CONTROL	0xB000
+#define TX_PATH_GAIN	0xB100
+#define TX_GAIN_STEP	0xB200
+#define RX_PATH_GAIN	0xB300
+#define RX_GAIN_STEP	0xB400
+#define DRX_TIME_SLOT	0xB500
+#define DRX_BIT_DELAY	0xB600
+#define DTX_TIME_SLOT	0xB700
+#define DTX_BIT_DELAY	0xB800
+#define GPIO_CONTROL	0xBA00
+
 #define SLAVE_SELECT_ENABLE 	0x1000
 #define SLAVE_SELECT			0x1004
 
@@ -53,143 +63,101 @@ static unsigned bufsiz = 4096;
 module_param(bufsiz, uint, S_IRUGO);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
-struct spi1_data {
-    struct spi_device   *spi;
-    struct mutex        lock;
-
-    struct cdev   c_dev; // tao ra character device
-    dev_t dev;
-    struct class  *class_p; // tao ra class
-    struct device *device_p; // da co spi_device thi can them cai nay ko ? co can de thuc hien phan device file
-
-    struct mutex buf_lock;
-    unsigned    users;
-    u8          *buffer;
-};
-static struct spi1_data *spi;
+static dev_t  dev;
+static struct cdev   c_dev;
+static struct class  *class_p;
+static struct device *device_p;
 static void __iomem *io;
 
-
-static u8 buf[10000] = {1,2,3,4,5,6,7,8,9,10};
 static void __iomem *io;
 
-/*
-struct spi1_data    *spidev;
-spidev = kzalloc(sizeof *spi0, GFP_KERNEL);
-spidev->spi = spi;
-dev_set_drvdata(spi, spidev);
-*/
-
-/* tao ra file ops de thao tac voi device file */
 static int spi1_open(struct inode *inodep, struct file *file)
 {
-	printk(KERN_INFO "======protocol_spi1: %s\n", __FUNCTION__);
-	/* disable SPI SSI*/
-	io = ioremap(SPI1_BASE, SPI1_END - SPI1_BASE);
+	io = ioremap(SPI1_BASE, SPI1_END - SPI1_BASE); 
 	if (io == NULL) {
-		printk("====== error ioremap in %s\n", __FUNCTION__);
+		printk("error ioremap in %s\n", __FUNCTION__);
 		return -1;
 	}
-//	__raw_writel(0x0, io + COMCERTO_SPI_SSIENR);
 	iowrite32(0x00, (io + COMCERTO_SPI_SSIENR));
-	printk("====== disable SSIENR success in %s\n", __FUNCTION__);
+	printk("disable SSIENR success in %s\n", __FUNCTION__);
 	return 0;
 }
+
 static int spi1_release(struct inode *inodep, struct file *file)
 {
-	printk(KERN_INFO "======protocol_spi1: %s\n", __FUNCTION__);
+	printk(KERN_INFO "protocol_spi1: %s\n", __FUNCTION__);
 	return 0;
 }
-/*static void write(platform device *spi)
+
+static int spi1_write(struct file *file, const char __user *buf, size_t len, loff_t *offset)
 {
-	spi_write(spi, buf, 10);
-}*/
-static int spi1_write(struct inode *inodep, struct file *file)
-{
-	printk(KERN_INFO "======protocol_spi1: %s\n", __FUNCTION__);
-	io = ioremap(SPI1_BASE, SPI1_END - SPI1_BASE);
+	long int temp;
+	char *kernel_buf = NULL;
+	kernel_buf = kzalloc(len, GFP_KERNEL);
+	if (kernel_buf == NULL)
+		goto malloc_fail;
+	temp = copy_from_user(kernel_buf, buf, len);
+	if (temp != 0)
+		goto get_data_fail;
+	io = ioremap(SPI0_BASE, SPI0_END - SPI0_BASE);
 	if (io == NULL) {
-		printk("====== error ioremap in %s\n", __FUNCTION__);
-		return -1;
+		printk("error ioremap in %s\n", __FUNCTION__);
+		goto get_data_fail;
 	}
-	__raw_writel(0x0, io + COMCERTO_SPI_SER);
-	printk("====== enable SER success in %s\n", __FUNCTION__);
-/*	__raw_writel(0x1, io + COMCERTO_SPI_SSIENR);
-	printk("====== enable SSIENR success in %s\n", __FUNCTION__);*/
-	return 0;
+	iowrite32(0x1, (io + SLAVE_SELECT_ENABLE));
+	iorwrite32(0x0F10, (io + COMCERTO_SPI_CTRLR0));
+	iowrite32(0x00A1, (io + COMCERTO_SPI_BAUDR));
+	iowrite32(0xF0, (io + COMCERTO_SPI_TXFTLR));
+	iowrite32(0xB0, (io + COMCERTO_SPI_RXFTLR));
+	iowrite32(0xF, (io + COMCERTO_SPI_SER));
+	iowrite32(0x3F, (io + COMCERTO_SPI_IMR));
+	iowrite32(0x00, (io + COMCERTO_SPI_SSIENR));
 }
+
 static int spi1_read(struct inode *inodep, struct file *file)
 {
-	printk(KERN_INFO "======protocol_spi1: %s\n", __FUNCTION__);
-	io = ioremap(SPI1_BASE, SPI1_END - SPI1_BASE);
-	if (io == NULL) {
-		printk("====== error ioremap in %s\n", __FUNCTION__);
-		return -1;
-	}
-/*	iowrite32(0x7, io + SLAVE_SELECT);
-	printk("====== enable SER success in %s\n", __FUNCTION__);*/
-	iowrite32(0x1, (io + SLAVE_SELECT_ENABLE));
-	printk("====== enable SSIENR success in %s\n", __FUNCTION__);
-	iowrite32(0x7, (io + SLAVE_SELECT));
+	printk(KERN_INFO "protocol_spi1: %s\n", __FUNCTION__);
 	return 0;
 }
+
 static struct file_operations fops = {
 	.open = spi1_open,
 	.release = spi1_release,
 	.write = spi1_write,
 	.read = spi1_read
 };
-/*----------------------------------------------------------------*/
-static int __init spi1_init(void)
+
+static int __init spi0_init(void)
 {
-	int res = -1;
-	printk("===== %s\n", __FUNCTION__);
-	res = alloc_chrdev_region(&dev, 0, 1, "spi1_dev");
-
-	if (res < 0) {
-		pr_info("======= error occur, can not register major number in function %s\n", __FUNCTION__);
-		goto fail;
-	} else {
-		res = -1;
+	if (alloc_chrdev_region(&dev, 0, 1, "spi1_dev") < 0) {
+		pr_info("Error occur, can not register major number\n");
+		return ERROR;
 	}
-	class_p = class_create(THIS_MODULE, "spi1_class");
+	class_p = class_create(THIS_MODULE, "class_spi1");
 	if (class_p == NULL) {
-		pr_info("====== error occur, can not create class device %s\n", __FUNCTION__);
-		goto fail;
+		pr_info("Error occur, can not create class device\n");
+		return ERROR;
 	}
-	device_p = device_create(class_p, NULL, dev, "spi1_device_file");
+	device_p = device_create(class_p, NULL, dev, "devspi1");
 	if (device_p == NULL) {
-		pr_info("====== can not create device %s\n",__FUNCTION__);
-		goto fail;
+		pr_info("Can not create device\n");
+		return ERROR;
 	}
-
-	//return spi_register_driver(&spi1_driver);
 	cdev_init(&c_dev, &fops);
 	c_dev.owner = THIS_MODULE;
-	c_dev.dev = dev;
-	res = cdev_add(&c_dev, dev, 1);
-	if (res) {
-		printk("====== error occur when add properties for struct cdev %s\n", __FUNCTION__);
-		goto fail;
-	} else {
-		res = -1;
-	}
+	c_dev.dev = dev; 
+	cdev_add(&c_dev, dev, 1);
+
 	return 0;
-fail:
-    printk("====== fail in %s\n",__FUNCTION__);
-//    kfree(spi1);
-    return -1;
 }
 module_init(spi1_init);
 
 static void __exit spi1_exit(void)
 {
-	//	spi_unregister_driver(&spi1_driver);
-	cdev_del(&c_dev);
-	device_destroy(class_p, dev);
-	class_destroy(class_p);
-	unregister_chrdev_region(dev, 1);
-
+    cdev_del(&c_dev);
+    device_destroy(class_p, dev);
+    class_destroy(class_p);
+    unregister_chrdev_region(dev, 1);
 }
 module_exit(spi1_exit);
 
